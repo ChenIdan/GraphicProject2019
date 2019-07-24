@@ -5,33 +5,17 @@
 #include "camera.h"
 #include "checkboard.h"
 #include "light.h"
+#include "elephant.h"
 
-
-#include "GUI.h"
 
 GLfloat general_light_ambient[] = { 0.1,0.1, 0.6,1 };
 GLfloat general_light_diffuse[] = { 0.5,0.5, 0.5,1 };
 GLfloat general_light_specular[] = { 0.1,0.1, 0.1,1 };;
 
-float angle;
-
-
-int Gui_Style; //integer to determin gui style. 0 is dark, 1 is classic, 2 is light
-
 
 #pragma warning(disable:4996)
 
-
-GLuint elephant;
-float elephantrot;
-char ch = '1';
-
-char fname[] = "elephant.obj";
-
-
 bool show_window = true;
-
-
 
 
 // This application shows balls bouncing on a checkerboard, with no respect
@@ -47,6 +31,7 @@ bool show_window = true;
 #include <cmath>
 
 
+
 #include "imgui_impl_freeglut.h"
 #include "imgui_impl_opengl2.h"
 #include "Imgui.h"
@@ -55,14 +40,9 @@ bool show_window = true;
 
 //gui window
 const ImVec2 win_size(30.0, 30.0);
-
-
 static ImVec4 clear_color = ImVec4(0, 0, 0, 0.00f);
 
 // Colors
-
-
-
 
 // A ball.  A ball has a radius, a color, and bounces up and down between
 // a maximum height and the xz plane.  Therefore its x and z coordinates
@@ -107,9 +87,12 @@ public:
 
 checkboard board(64, 64);
 float pos[3] = { 0,2,0 };
-camera Camera(0,2,0,0,0, board.width,max(board.width, board.depth),board.depth, 0, 0,0);
+camera Camera(board.centerx(),2,board.centerz(),0,0, board.width,max(board.width, board.depth),board.depth, 0, 0,0);
+elephant my_elephant(20, 0, 20,0, & Camera.elephant_pov);
 
 light spotlight(board.centerx(), board.centerz(), 90, 0.5, 0.1, 0, board.width, board.depth, 0, 0);
+char file[] = "Low-Poly-Racing-Car.obj";
+//Object_Model Iron_Men(file, 20, 0, 20, 0.025, 0, 0, 0, 45);
 
 Ball balls[] = {
 	Ball(1, GREEN, 7, board.centerx(), board.centerz()),
@@ -124,15 +107,31 @@ Ball balls[] = {
 
 void init() {
 
-
-	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_LIGHT0);
+	glEnable(GL_LIGHT1);
+	//Depth states
+	glClearDepth(2.0f);
 	glDepthFunc(GL_LESS);
+	glEnable(GL_DEPTH_TEST);
+
+
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+	//glEnable(GL_CULL_FACE);
+
+	
 	glShadeModel(GL_SMOOTH);
 	glEnable(GL_LIGHTING);
 
 
-	glEnable(GL_LIGHT0);
-	glEnable(GL_LIGHT1);
+	// blending
+	//glEnable(GL_BLEND);
+	glEnable(GL_POINT_SMOOTH);
+	glEnable(GL_POLYGON_SMOOTH);
+	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+
+	
 
 	
 
@@ -149,14 +148,16 @@ void init() {
 
 	//setting up directional light
 
-
 	glLightfv(GL_LIGHT1, GL_AMBIENT, general_light_ambient);
 	glLightfv(GL_LIGHT1, GL_DIFFUSE, general_light_diffuse);
 	glLightfv(GL_LIGHT1, GL_SPECULAR, general_light_specular);
-	glLightf(GL_LIGHT1, GL_LINEAR_ATTENUATION,1);
+	//glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, 0.25);
+	//glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, 0.25);
+	//glLightf(GL_LIGHT1, GL_LINEAR_ATTENUATION, 0.25);
 
 	//syncs specular reflection with the viewr
-	glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE);
+	//glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE);
+
 
 
 	//setting up checkboard material properties
@@ -166,59 +167,14 @@ void init() {
 	glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE);
 	glMaterialf(GL_FRONT, GL_SHININESS, 30);
 
+
+
+
 	board.create();
 
+
+
 }
-
-//function for loading obj files
-void loadObj(char *fname)
-{
-	FILE *fp;
-	int read;
-	GLfloat x, y, z;
-	char ch;
-	elephant = glGenLists(1);
-	fp = fopen(fname, "r");
-	if (!fp)
-	{
-		printf("can't open file %s\n", fname);
-		exit(1);
-	}
-	glPointSize(2.0);
-	glNewList(elephant, GL_COMPILE);
-	{
-		glPushMatrix();
-		glBegin(GL_POINTS);
-		while (!(feof(fp)))
-		{
-			read = fscanf(fp, "%c %f %f %f", &ch, &x, &y, &z);
-			if (read == 4 && ch == 'v')
-			{
-				glVertex3f(x, y, z);
-			}
-		}
-		glEnd();
-	}
-	glPopMatrix();
-	glEndList();
-	fclose(fp);
-}
-
-void drawElephant()
-{
-	glPushMatrix();
-	glTranslatef(0, -40.00, -105);
-	glColor3f(1.0, 0.23, 0.27);
-	glScalef(0.1, 0.1, 0.1);
-	glRotatef(elephantrot, 0, 1, 0);
-	glCallList(elephant);
-	glPopMatrix();
-	elephantrot = elephantrot + 0.6;
-	if (elephantrot>360)elephantrot = elephantrot - 360;
-}
-
-
-
 
 // On reshape, constructs a camera that perfectly fits the window.
 void reshape(GLint w, GLint h) {
@@ -236,6 +192,8 @@ void reshape(GLint w, GLint h) {
 
 // function for drawing GUI
 void my_display_code() {
+
+	static camera tmp_camera = Camera; //saves current camera if user chooses elephant pov
 
 
 	//begin ImGui frame. the flag ImGuiWindowFlags_MenuBar is responsinle for the menu bar in the frame
@@ -263,6 +221,123 @@ void my_display_code() {
 		}
 		ImGui::EndMenuBar();
 	}
+
+	if (ImGui::CollapsingHeader("elephant controlers")) {
+		
+		
+		if (*my_elephant.elephant_pov) {
+
+			
+			ImGui::SliderFloat("rotate", &my_elephant.theta, 0,  360);
+			
+			
+
+		}
+
+		else {
+			ImGui::SliderFloat("rotate", &my_elephant.theta, 0, 360);
+
+		}
+		if (ImGui::RadioButton("move", my_elephant.is_moving)) {
+			my_elephant.is_moving = !my_elephant.is_moving;
+
+		}
+		
+
+		
+
+		if (ImGui::CollapsingHeader("tilt elephant_head")) {
+			if (ImGui::RadioButton("tilt head up and down", my_elephant.head.tilt_up_and_down)) {
+				if (!my_elephant.head.tilt_up_and_down) {
+					my_elephant.head.start_tilt_up_down();
+					my_elephant.trunk.start_tilt_up_down();
+				}
+
+				else {
+					my_elephant.head.end_tilt();
+					my_elephant.trunk.end_tilt();
+				}
+				
+
+
+		    }
+			if (ImGui::RadioButton("tilt head right and left", my_elephant.head.tilt_left_and_right)) {
+				if (!my_elephant.head.tilt_left_and_right) {
+					my_elephant.head.start_tilt_left_right();
+					my_elephant.trunk.start_tilt_left_right();
+				}
+				else {
+					my_elephant.head.end_tilt();
+					my_elephant.trunk.end_tilt();
+				}
+				
+
+			}
+		}
+
+		if (ImGui::CollapsingHeader("tilt elephant tail")) {
+			if (ImGui::RadioButton("tilt tail up and down", my_elephant.tail.tilt_up_and_down)) {
+				if (!my_elephant.tail.tilt_up_and_down) {
+					my_elephant.tail.start_tilt_up_down();
+					
+				}
+
+				else {
+					my_elephant.tail.end_tilt();
+					
+				}
+
+
+
+			}
+			if (ImGui::RadioButton("tilt tail right and left", my_elephant.tail.tilt_left_and_right)) {
+				if (!my_elephant.tail.tilt_left_and_right) {
+					my_elephant.tail.start_tilt_left_right();
+				}
+				else {
+					my_elephant.tail.end_tilt();
+				}
+
+
+			}
+		}
+
+
+		
+		if (ImGui::RadioButton("elephant pov", Camera.elephant_pov)) {
+			
+			
+			Camera.elephant_pov = !Camera.elephant_pov;
+			if(Camera.elephant_pov){
+				tmp_camera = Camera;
+
+				
+				Camera.posX = my_elephant.head.locX;
+				Camera.posY = my_elephant.head.locY;
+				Camera.posZ = my_elephant.head.locZ;
+				
+			}
+
+			if (!Camera.elephant_pov) {
+
+				my_elephant.theta = -Camera.thetaY; //get elephant angel in respect to the viewing coordinate system
+				my_elephant.theta += 180; // flip elephant angel, becuase of the head direction
+
+				my_elephant.locX = Camera.posX;
+				my_elephant.locZ = Camera.posZ;
+
+				Camera = tmp_camera;
+				
+				
+				Camera.elephant_pov = !Camera.elephant_pov;
+				
+			}
+
+		}
+
+
+	}
+
 
 	if (ImGui::CollapsingHeader("Adjust Lighting")) {
 		ImGui::ColorEdit3("adjust ambient light", (float *)&general_light_ambient);
@@ -315,18 +390,10 @@ void my_display_code() {
 		
 	}
 	
-	
-
-
 
 // Draws one frame, the checkerboard then the balls, from the current camera
 // position.
 void display() {
-	
-
-
-
-
 
 	// Start the ImGui frame
 	ImGui_ImplOpenGL2_NewFrame();
@@ -346,39 +413,74 @@ void display() {
 
 	glMatrixMode(GL_MODELVIEW);
 
+	
 	glLoadIdentity();
 
+
+	printf("Camera angel : %d\n", Camera.thetaX);
+
+	//init camera with elephant locations and values if we are at elephant pov
+	if (Camera.elephant_pov) {
+		
+		
+		
+		Camera.posY = 3;
+
+		Camera.thetaX = my_elephant.head.get_vertical_tilt();
+
+		printf("%d\n", Camera.thetaX);
+		Camera.thetaY = -my_elephant.theta - my_elephant.head.get_horizontal_tilt(); //make elephant rotation direction to be negtive, because 
+																				//elephant rotation is negtive in respect to global coordinate system
+			
+		Camera.thetaY+= 180 ; //flip Camera direction in z axis, because the elephant initial head direction is the vector (0,0,-1)
+
+		//setting up camera direction
+
+		glRotatef(Camera.thetaX, 1, 0, 0);
+		glRotatef(Camera.thetaY, 0, 1, 0);
+
+
+		//setting up viewing coordinates
+
+		glTranslatef(-Camera.posX, -Camera.posY, -Camera.posZ);
+
+		
+		if (my_elephant.is_moving) {
+			Camera.moveBackward();
+		}
+		
+	}
+	
+	else {
+
+		
+		//setting up camera direction
+		glRotatef(Camera.thetaX, 1, 0, 0);
+		glRotatef(Camera.thetaY, 0, 1, 0);
+
+		//setting up viewing coordinates
+
+		glTranslatef(-Camera.posX, -Camera.posY, -Camera.posZ);
+		if (my_elephant.is_moving) {
+
+
+			my_elephant.move();
+
+		}
+	}
+
 	
 
-	//setting up viewing coordinates
-
-	//setting up camera direction
-
-	glRotatef(Camera.thetaX,  1, 0, 0);
-	glRotatef(Camera.thetaY, 0, 1, 0);
-
-	glTranslatef(-Camera.posX, -Camera.posY, -Camera.posZ);
-
-	
-
-
-
-
-
-
-
-	
 	//setting up light position and direction in the viewing coordinates, so the light position and direction wont be affected from moving the camera 
 
 	GLfloat lightPosition[4] = { spotlight.posX, spotlight.get_height(),spotlight.posZ, 1 };
 
-	GLfloat _lightPosition[4] = { board.centerx(), 3,board.centerz(),0};
+	GLfloat _lightPosition[4] = { board.centerx(), 3,board.centerz(),1};
 	glLightfv(GL_LIGHT0, GL_POSITION, lightPosition); // spotlight position setting
 	glLightfv(GL_LIGHT1, GL_POSITION, _lightPosition); // general light position setting
 	glLightfv(GL_LIGHT1, GL_AMBIENT, general_light_ambient);
 	glLightfv(GL_LIGHT1, GL_SPECULAR, general_light_specular);
-
-
+	glLightfv(GL_LIGHT1, GL_DIFFUSE, general_light_diffuse);
 
 	//light direction setting
 	glRotatef(spotlight.angleX, 1, 0, 0);
@@ -388,31 +490,29 @@ void display() {
 	glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, lightdir);
 	glRotatef(-spotlight.angleZ, 0, 0, 1);
 	glRotatef(-spotlight.angleX, 1, 0, 0);
-	
 
-
-
-	
-	
 
 	for (int i = 0; i < sizeof balls / sizeof(Ball); i++) {
 		balls[i].update();
 	}
 
+	my_elephant.draw = !Camera.elephant_pov;
+
+	my_elephant.Update(); // draws elephant
+	
+	//Iron_Men.Draw();
+	glTranslatef(50, 3, 50);
+	glutSolidTeapot(2);
+	glTranslatef(-50, -3, -50);
+	
 	glPushMatrix();
 	board.draw();
-	glTranslatef(board.centerx(), 0, board.centerz());
 	glutSolidCube(1);
+
 	glPopMatrix();
 
-
-	glPushMatrix();
-	drawElephant();
-	glPopMatrix();
-
-
+	//draws gui window
 	ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
-
 
 	glFlush();
 
@@ -431,34 +531,45 @@ void timer(int v) {
 // Moves the camera according to the key pressed, then ask to refresh the
 // display.
 void special(int key, int, int) {
-	switch (key) {
-	case GLUT_KEY_LEFT: Camera.moveLeft(); break;
-	case GLUT_KEY_RIGHT: Camera.moveRight(); break;
-	case GLUT_KEY_UP: Camera.moveUp(); break;
-	case GLUT_KEY_DOWN: Camera.moveDown(); break;
 
+	if(!Camera.elephant_pov){
+		switch (key) {
+		case GLUT_KEY_LEFT: Camera.moveLeft(); break;
+		case GLUT_KEY_RIGHT: Camera.moveRight(); break;
+		case GLUT_KEY_UP: Camera.moveUp(); break;
+		case GLUT_KEY_DOWN: Camera.moveDown(); break;
+
+		}
 	}
+	
 	
 	glutPostRedisplay();
 }
 
 void normal(unsigned char key, int, int) {
-	switch (key) {
-	case '+': Camera.moveBackward(); printf("%f\n", general_light_ambient[0]); break;
-	case '-': Camera.moveForward(); break;
-	case 'q': Camera.rotateX_left(); break;
-	case 'v': Camera.rotateX_right(); break;
-	case 't': Camera.rotateY_up(); break;
-	case 'l': Camera.rotateY_down(); break;
-	case '1': spotlight.increase_angleX(); break;
-	case '2':spotlight.decrease_angleX(); break;
-	case '3': spotlight.increase_angleZ(); break;
-	case '4':spotlight.decrease_angleZ(); break;
-	case '5':spotlight.moveRight(); break;
-	case '6':spotlight.moveLeft(); break;
-	case '7':spotlight.moveForward(); break;
-	case '8':spotlight.moveInward(); break;
+	
+		if (!Camera.elephant_pov) {
+			switch (key) {
+				case '+': Camera.moveBackward(); break;
+				case '-': Camera.moveForward(); break;
+				case 'q': Camera.rotateX_left(); break;
+				case 'v':  Camera.rotateX_right(); break;
+				case 't': Camera.rotateY_up(); break;
+				case 'l': Camera.rotateY_down(); break;
+
+
+
+				case '1': spotlight.increase_angleX(); break;
+				case '2':spotlight.decrease_angleX(); break;
+				case '3': spotlight.increase_angleZ(); break;
+				case '4':spotlight.decrease_angleZ(); break;
+				case '5':spotlight.moveRight(); break;
+				case '6':spotlight.moveLeft(); break;
+				case '7':spotlight.moveForward(); break;
+				case '8':spotlight.moveInward(); break;
+			}
 	}
+
 
 	glutPostRedisplay();
 
@@ -518,9 +629,6 @@ int main(int argc, char** argv) {
 	// Setup style
 	//ImGui::StyleColorsDark();
 	ImGui::StyleColorsClassic();
-	loadObj(fname);
-	
-
 	glutMainLoop();
 
 	// Cleanup

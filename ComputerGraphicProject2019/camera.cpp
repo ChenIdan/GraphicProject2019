@@ -9,7 +9,7 @@
 #define max_angle 360
 
 camera::camera(float posX, float posY, float posZ, float thetaX, float thetaY, float maxX, float maxY, float maxZ, float  minX, float minY, float minZ):
-	posX(posX), posY(posY), posZ(posZ), thetaX(thetaX),thetaY(thetaY),maxX(maxX), minX(minX),maxY(maxY), minY(minY), maxZ(maxZ), minZ(minZ)
+	posX(posX), posY(posY), posZ(posZ), thetaX(thetaX),thetaY(thetaY),maxX(maxX), minX(minX),maxY(maxY), minY(minY), maxZ(maxZ), minZ(minZ), elephant_pov(false)
 {}
 float camera::get_posX() {return  posX; }
 float camera::get_posY() { return posY; }
@@ -30,10 +30,14 @@ void   camera::moveRight() {
 		
 
 		//get the translation vector in the current camera coordinate system
+
+
+		//get current modelview matrix
 		float matrixf[16];
 		glGetFloatv(GL_MODELVIEW_MATRIX, matrixf);
 		Matrix4 modelview_mat = Matrix4(matrixf);
 		Vector4 zero_vec = Vector4(0, 0, 0, 1);
+		glPopMatrix();
 
 
 		//translate camera position
@@ -100,6 +104,8 @@ void  camera::moveLeft() {
 		
 
 		//get the translation vector in the current camera coordinate system
+
+		//get current modelview matrix
 		float matrixf[16];
 		glGetFloatv(GL_MODELVIEW_MATRIX, matrixf);
 		Matrix4 modelview_mat = Matrix4(matrixf);

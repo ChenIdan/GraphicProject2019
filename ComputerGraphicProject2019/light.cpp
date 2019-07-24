@@ -1,7 +1,7 @@
 #include "light.h"
 
 #define SPOTLIGHT_EXP 10
-#define SPOTLIGHT_HEIGHT 7
+#define SPOTLIGHT_HEIGHT 10
 
 #define angleX_max 45
 #define angleX_min -45

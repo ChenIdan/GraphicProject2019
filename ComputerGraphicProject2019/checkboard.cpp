@@ -1,15 +1,16 @@
 
 
 #include "checkboard.h"
+
 #include <GL\glew.h>
 #include <GL\freeglut.h>
 #include <stdlib.h>     /* srand, rand */
 
 
-GLfloat CHECKBOARD_WHITE[] = { 1, 1, 1 };
-GLfloat CHECKBOARD_RED[] = { 1, 0, 0 };
-GLfloat CHECKBOARD_GREEN[] = { 0, 1, 0 };
-GLfloat CHECKBOARD_MAGENTA[] = { 1, 0, 1 };
+GLfloat CHECKBOARD_WHITE[] = { 1, 1, 1,0.5 };
+GLfloat CHECKBOARD_RED[] = { 1, 0, 0,0.3 };
+GLfloat CHECKBOARD_GREEN[] = { 0, 1, 0,0.2 };
+GLfloat CHECKBOARD_MAGENTA[] = { 0, 0, 0,0. };
 
 
 
@@ -42,7 +43,8 @@ void checkboard::create()
 			
 			
 			glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE,
-				((x+z) % 2 == 0) ? CHECKBOARD_RED : CHECKBOARD_WHITE);
+				((x+z) % 2 == 0) ? CHECKBOARD_MAGENTA : CHECKBOARD_WHITE);
+			
 			for (float tx = 0; tx < 1; tx += 0.1) {
 				for (float tz = 0; tz <1; tz += 0.1) {
 				
